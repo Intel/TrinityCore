@@ -109,7 +109,7 @@ namespace Movement
                 for (uint32 i = 1; i < last_idx; ++i)
                 {
                     offset = middle - real_path[i];
-                    movementSpline.Points.push_back(offset);
+                    movementSpline.PackedDeltas.push_back(offset);
                 }
             }
         }

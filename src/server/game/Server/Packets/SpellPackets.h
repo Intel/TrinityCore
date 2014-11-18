@@ -81,7 +81,23 @@ namespace WorldPackets
 
             std::vector<uint32> Spells;
         };
+
+        struct SpellLogPowerData
+        {
+            int32 PowerType;
+            int32 Amount;
+        };
+
+        struct SpellCastLogData
+        {
+            int32 Health;
+            int32 AttackPower;
+            int32 SpellPower;
+            std::vector<SpellLogPowerData> PowerData;
+        };
     }
 }
+
+ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Spell::SpellCastLogData& spellCastLogData);
 
 #endif // SpellPackets_h__

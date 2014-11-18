@@ -84,15 +84,15 @@ namespace WorldPackets
 
         struct SpellLogPowerData
         {
-            int32 PowerType;
-            int32 Amount;
+            int32 PowerType = 0;
+            int32 Amount    = 0;
         };
 
         struct SpellCastLogData
         {
-            int32 Health;
-            int32 AttackPower;
-            int32 SpellPower;
+            int32 Health        = 0;
+            int32 AttackPower   = 0;
+            int32 SpellPower    = 0;
             std::vector<SpellLogPowerData> PowerData;
         };
     }

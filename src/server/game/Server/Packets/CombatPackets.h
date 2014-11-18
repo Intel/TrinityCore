@@ -103,8 +103,8 @@ namespace WorldPackets
 
             WorldPacket const* Write() override;
 
-            ObjectGuid AboutGUID;
-            ObjectGuid UnitGUID;
+            ObjectGuid AboutGUID; // Unit to remove threat from (e.g. player, pet, guardian)
+            ObjectGuid UnitGUID; // Unit being attacked (e.g. creature, boss)
         };
 
         class AIReaction final : public ServerPacket
@@ -115,13 +115,13 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             ObjectGuid UnitGUID;
-            uint32 Reaction;
+            uint32 Reaction = 0;
         };
 
         struct SubDamage
         {
             int32 SchoolMask    = 0;
-            float FDamage       = 0.0f;
+            float FDamage       = 0.0f; // Float damage (Most of the time equals to Damage)
             int32 Damage        = 0;
             int32 Absorbed      = 0;
             int32 Resisted      = 0;
@@ -156,7 +156,7 @@ namespace WorldPackets
             ObjectGuid AttackerGUID;
             ObjectGuid VictimGUID;
             int32 Damage            = 0;
-            int32 OverDamage        = 0;
+            int32 OverDamage        = -1; // (damage - health) or -1 if unit is still alive
             Optional<SubDamage> SubDmg;
             uint8 VictimState       = 0;
             int32 AttackerState     = -1;

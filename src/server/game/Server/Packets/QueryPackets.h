@@ -210,6 +210,46 @@ namespace WorldPackets
 
             HotfixData const* Hotfixes = nullptr;
         };
+
+        class QueryGameObject final : public ClientPacket
+        {
+        public:
+            QueryGameObject(WorldPacket&& packet) : ClientPacket(CMSG_GAMEOBJECT_QUERY, std::move(packet)) { }
+
+            void Read() override;
+            uint32 Entry = 0;
+            ObjectGuid Guid;
+        };
+
+        struct GameObjectStats
+        {
+            std::string Name[4];
+            std::string IconName;
+            std::string CastBarCaption;
+            std::string UnkString;
+            uint32 Type = 0;
+            uint32 DisplayID = 0;
+            uint32 Data[MAX_GAMEOBJECT_DATA];
+            float Size = 0.0f;
+            std::vector<int32> QuestItems;
+            uint32 Expansion = 0;
+
+            size_t GetDataSize() const
+            {
+                return sizeof(Type) + sizeof(DisplayID) + (Name->length() + (4 * 1)) + (IconName.size() + 1) + (CastBarCaption.size() + 1) + (UnkString.size() + 1) + sizeof(Data) + sizeof(Size) + sizeof(uint8) + (QuestItems.size() * sizeof(uint32)) + sizeof(Expansion);
+            }
+        };
+
+        class QueryGameObjectResponse final : public ServerPacket
+        {
+        public:
+            QueryGameObjectResponse() : ServerPacket(SMSG_GAMEOBJECT_QUERY_RESPONSE, 165) { } // Guess size
+
+            WorldPacket const* Write() override;
+            uint32 Entry = 0;
+            bool Allow = false;
+            GameObjectStats Stats;
+        };
     }
 }
 

@@ -3527,7 +3527,7 @@ void ObjectMgr::LoadQuests()
 
             auto itr = _questTemplates.find(questId);
             if (itr != _questTemplates.end())
-                itr->second->LoadQuestOfferReward(fields);
+                itr->second->LoadQuestDetails(fields);
             else
                 TC_LOG_ERROR("server.loading", "Table `quest_details` has data for quest %u but such quest does not exist", questId);
         } while (result->NextRow());
@@ -3573,15 +3573,17 @@ void ObjectMgr::LoadQuests()
 
             auto itr = _questTemplates.find(questId);
             if (itr != _questTemplates.end())
-                itr->second->LoadQuestRequestItems(fields);
+                itr->second->LoadQuestOfferReward(fields);
             else
                 TC_LOG_ERROR("server.loading", "Table `quest_offer_reward` has data for quest %u but such quest does not exist", questId);
         } while (result->NextRow());
     }
 
     // Load `quest_template_addon`
-    //                                   0   1         2                3              4            5            6               7                     8                9                  10
-    result = WorldDatabase.Query("SELECT ID, MaxLevel, AllowableClasses, SourceSpellID, PrevQuestID, NextQuestID, ExclusiveGroup, RewardMailTemplateID, RewardMailDelay, ProvidedItemCount, SpecialFlags FROM quest_template_addon");
+    //                                   0   1         2                 3              4            5            6               7                     8
+    result = WorldDatabase.Query("SELECT ID, MaxLevel, AllowableClasses, SourceSpellID, PrevQuestID, NextQuestID, ExclusiveGroup, RewardMailTemplateID, RewardMailDelay, "
+        //9               10                   11                     12                     13                   14                   15                 16
+        "RequiredSkillID, RequiredSkillPoints, RequiredMinRepFaction, RequiredMaxRepFaction, RequiredMinRepValue, RequiredMaxRepValue, ProvidedItemCount, SpecialFlags FROM quest_template_addon");
 
     if (!result)
     {

@@ -447,16 +447,14 @@ class Quest
         int32  ExclusiveGroup       = 0;
         uint32 RewardMailTemplateId = 0;
         uint32 RewardMailDelay      = 0;
+        uint32 RequiredSkillId      = 0;
+        uint32 RequiredSkillPoints  = 0;
+        uint32 RequiredMinRepFaction = 0;
+        int32  RequiredMinRepValue  = 0;
+        uint32 RequiredMaxRepFaction = 0;
+        int32  RequiredMaxRepValue  = 0;
         uint32 SourceItemIdCount    = 0;
         uint32 SpecialFlags         = 0; // custom flags, not sniffed/WDB
-
-        // not loaded yet
-        uint32 RequiredSkillId          = 0;
-        uint32 RequiredSkillPoints      = 0;
-        uint32 RequiredMinRepFaction    = 0;
-        int32  RequiredMinRepValue      = 0;
-        uint32 RequiredMaxRepFaction    = 0;
-        int32  RequiredMaxRepValue      = 0;
 };
 
 struct QuestStatusData

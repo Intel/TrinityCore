@@ -370,7 +370,7 @@ public:
                         boss->CombatStop(true);
                         boss->LoadCreaturesAddon();
                         boss->GetMotionMaster()->MoveTargetedHome();
-                        boss->SetLootRecipient(NULL);
+                        boss->SetTapper(nullptr);
                     }
                     boss->setFaction(FACTION_FRIEND);
                 }

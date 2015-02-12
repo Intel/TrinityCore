@@ -23,6 +23,7 @@
 #include "ObjectMgr.h"
 #include "GuildMgr.h"
 #include "SpellMgr.h"
+#include "LootMgr.h"
 #include "Log.h"
 #include "Opcodes.h"
 #include "Spell.h"
@@ -282,7 +283,12 @@ void WorldSession::HandleOpenItemOpcode(WorldPacket& recvPacket)
         CharacterDatabase.Execute(stmt);
     }
     else
-        pUser->SendLoot(item->GetGUID(), LOOT_CORPSE);
+    {
+        if (!item->loot)
+            item->loot = Loot::CreateItemLoot(item, pUser);
+
+        pUser->SendLoot(item->loot);
+    }
 }
 
 void WorldSession::HandleGameObjectUseOpcode(WorldPackets::GameObject::GameObjectUse& packet)

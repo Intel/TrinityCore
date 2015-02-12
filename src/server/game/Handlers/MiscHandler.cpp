@@ -379,9 +379,10 @@ void WorldSession::HandleLogoutRequestOpcode(WorldPackets::Character::LogoutRequ
 {
     TC_LOG_DEBUG("network", "WORLD: Recvd CMSG_LOGOUT_REQUEST Message, security - %u", GetSecurity());
 
+    /** @todo 6.x loot update
     ObjectGuid lguid = GetPlayer()->GetLootGUID();
     if (!lguid.IsEmpty())
-        DoLootRelease(lguid);
+        DoLootRelease(lguid);**/
 
     bool instantLogout = (GetPlayer()->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING) && !GetPlayer()->IsInCombat()) ||
                          GetPlayer()->IsInFlight() || HasPermission(rbac::RBAC_PERM_INSTANT_LOGOUT);

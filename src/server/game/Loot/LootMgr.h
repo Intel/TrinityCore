@@ -62,6 +62,8 @@ enum RollMask
     ROLL_ALL_TYPE_MASK          = 0x0F
 };
 
+#define ROLL_TIME 60000
+
 #define MAX_NR_LOOT_ITEMS 16
 // note: the client cannot show more than 16 items total
 #define MAX_NR_QUEST_ITEMS 32
@@ -99,10 +101,6 @@ enum LootType
     LOOT_SKINNING               = 6,
     LOOT_PROSPECTING            = 7,
     LOOT_MILLING                = 8,
-
-    LOOT_FISHINGHOLE            = 20,                       // unsupported by client, sending LOOT_FISHING instead
-    LOOT_INSIGNIA               = 21,                       // unsupported by client, sending LOOT_CORPSE instead
-    LOOT_FISHING_JUNK           = 22                        // unsupported by client, sending LOOT_FISHING instead
 };
 
 enum LootError
@@ -119,7 +117,8 @@ enum LootError
     LOOT_ERROR_MASTER_UNIQUE_ITEM       = 13,   // Player has too many of that item already
     LOOT_ERROR_MASTER_OTHER             = 14,   // Can't assign item to that player
     LOOT_ERROR_ALREADY_PICKPOCKETED     = 15,   // Your target has already had its pockets picked
-    LOOT_ERROR_NOT_WHILE_SHAPESHIFTED   = 16    // You can't do that while shapeshifted.
+    LOOT_ERROR_NOT_WHILE_SHAPESHIFTED   = 16,   // You can't do that while shapeshifted.
+    LOOT_ERROR_NONE                     = 17    // Everything is ok
 };
 
 // type of Loot Item in Loot View
@@ -133,6 +132,9 @@ enum LootSlotType
 };
 
 class Player;
+class Creature;
+class GameObject;
+class Item;
 class LootStore;
 
 struct LootStoreItem
@@ -323,69 +325,54 @@ struct Loot
     QuestItemMap const& GetPlayerFFAItems() const { return PlayerFFAItems; }
     QuestItemMap const& GetPlayerNonQuestNonFFAConditionalItems() const { return PlayerNonQuestNonFFAConditionalItems; }
 
-    std::vector<LootItem> items;
-    std::vector<LootItem> quest_items;
-    uint32 gold;
-    uint8 unlootedCount;
-    ObjectGuid roundRobinPlayer;                            // GUID of the player having the Round-Robin ownership for the loot. If 0, round robin owner has released.
-    LootType loot_type;                                     // required for achievement system
-    uint8 maxDuplicates;                                    // Max amount of items with the same entry that can drop (default is 1; on 25 man raid mode 3)
+    Loot(Object* owner, Player const* recipient, LootType type = LOOT_NONE);
+    ~Loot(); 
 
-    // GUID of container that holds this loot (item_instance.entry)
-    //  Only set for inventory items that can be right-click looted
-    ObjectGuid containerID;
-
-    Loot(uint32 _gold = 0) : gold(_gold), unlootedCount(0), roundRobinPlayer(), loot_type(LOOT_CORPSE), maxDuplicates(1) { }
-    ~Loot() { clear(); }
+    static Loot* CreatePickPocketLoot(Creature* creature, Player* looter);
+    static Loot* CreateCreatureLoot(Creature* creature, Player* looter);
+    static Loot* CreateSkinningLoot(Creature* creature, Player* looter);
+    static Loot* CreateInsigniaLoot(Player* player, Player* looter);
+    static Loot* CreateFishingLoot(GameObject* go, Player* looter, uint16 lootMode = LOOT_MODE_DEFAULT);
+    static Loot* CreateGameObjectLoot(GameObject* go, Player* looter);
+    static Loot* CreateDisenchantingLoot(Item* item, Player* looter);
+    static Loot* CreateProspectingLoot(Item* item, Player* looter);
+    static Loot* CreateMillingLoot(Item* item, Player* looter);
+    static Loot* CreateItemLoot(Item* item, Player* looter);
 
     ObjectGuid const& GetGUID() const { return _GUID; }
-    void SetGUID(ObjectGuid const& guid) { _GUID = guid; }
+
+    Object* GetOwner() { return _owner; }
+
+    Player* GetRecipient() const;
+    Group* GetRecipientGroup() const;
+    bool IsAllowed(Player const* player) const;
+
+    void StartRollTimer(uint32 time) { _rollTimer = time; }
+
+    // Returns false if rolling is ongoing to prevent corpse despawning
+    bool UpdateRollTimer(uint32 diff);
 
     // For deleting items at loot removal since there is no backward interface to the Item()
     void DeleteLootItemFromContainerItemDB(uint32 itemID);
     void DeleteLootMoneyFromContainerItemDB();
 
     // if loot becomes invalid this reference is used to inform the listener
-    void addLootValidatorRef(LootValidatorRef* pLootValidatorRef)
+    void AddLootValidatorRef(LootValidatorRef* pLootValidatorRef)
     {
-        i_LootValidatorRefManager.insertFirst(pLootValidatorRef);
+        _lootValidatorRefManager.insertFirst(pLootValidatorRef);
     }
 
-    // void clear();
-    void clear()
-    {
-        for (QuestItemMap::const_iterator itr = PlayerQuestItems.begin(); itr != PlayerQuestItems.end(); ++itr)
-            delete itr->second;
-        PlayerQuestItems.clear();
-
-        for (QuestItemMap::const_iterator itr = PlayerFFAItems.begin(); itr != PlayerFFAItems.end(); ++itr)
-            delete itr->second;
-        PlayerFFAItems.clear();
-
-        for (QuestItemMap::const_iterator itr = PlayerNonQuestNonFFAConditionalItems.begin(); itr != PlayerNonQuestNonFFAConditionalItems.end(); ++itr)
-            delete itr->second;
-        PlayerNonQuestNonFFAConditionalItems.clear();
-
-        PlayersLooting.clear();
-        items.clear();
-        quest_items.clear();
-        gold = 0;
-        unlootedCount = 0;
-        roundRobinPlayer.Clear();
-        loot_type = LOOT_NONE;
-        i_LootValidatorRefManager.clearReferences();
-    }
-
-    bool empty() const { return items.empty() && gold == 0; }
-    bool isLooted() const { return gold == 0 && unlootedCount == 0; }
+    bool Empty() const { return Items.empty() && Gold == 0; }
+    bool IsLooted() const { return Gold == 0 && UnlootedCount == 0; }
 
     void NotifyItemRemoved(uint8 lootIndex);
     void NotifyQuestItemRemoved(uint8 questIndex);
     void NotifyMoneyRemoved();
     void AddLooter(ObjectGuid GUID) { PlayersLooting.insert(GUID); }
     void RemoveLooter(ObjectGuid GUID) { PlayersLooting.erase(GUID); }
+    PermissionTypes GetPermission(Player* player);
 
-    void generateMoneyLoot(uint32 minAmount, uint32 maxAmount);
+    void GenerateMoneyLoot(uint32 minAmount, uint32 maxAmount);
     bool FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bool personal, bool noEmptyError = false, uint16 lootMode = LOOT_MODE_DEFAULT);
 
     // Inserts the item into the loot (called by LootTemplate processors)
@@ -393,11 +380,23 @@ struct Loot
 
     LootItem* LootItemInSlot(uint32 lootslot, Player* player, QuestItem** qitem = NULL, QuestItem** ffaitem = NULL, QuestItem** conditem = NULL);
     uint32 GetMaxSlotInLootFor(Player* player) const;
-    bool hasItemFor(Player* player) const;
-    bool hasOverThresholdItem() const;
+    bool HasItemFor(Player* player) const;
+    bool HasOverThresholdItem() const;
 
     // Builds data for SMSG_LOOT_RESPONSE
     void BuildLootResponse(WorldPackets::Loot::LootResponse& packet, Player* viewer, PermissionTypes permission = ALL_PERMISSION) const;
+
+    std::vector<LootItem> Items;
+    std::vector<LootItem> QuestItems;
+    uint32 Gold;
+    uint8 UnlootedCount;
+    ObjectGuid RoundRobinPlayer;                            // GUID of the player having the Round-Robin ownership for the loot. If 0, round robin owner has released.
+    LootType Type;                                     // required for achievement system
+    uint8 MaxDuplicates;                                    // Max amount of items with the same entry that can drop (default is 1; on 25 man raid mode 3)
+
+    // GUID of container that holds this loot (item_instance.entry)
+    //  Only set for inventory items that can be right-click looted
+    ObjectGuid ContainerID;
 
 private:
 
@@ -412,10 +411,20 @@ private:
     QuestItemMap PlayerNonQuestNonFFAConditionalItems;
 
     // All rolls are registered here. They need to know, when the loot is not valid anymore
-    LootValidatorRefManager i_LootValidatorRefManager;
+    LootValidatorRefManager _lootValidatorRefManager;
+
+    // Group loot roll timer
+    uint32 _rollTimer;
 
     // Loot GUID
     ObjectGuid _GUID;
+
+    // Owner (object to which this loot belongs to)
+    Object* _owner;
+
+    // Recipient
+    ObjectGuid _recipient;
+    ObjectGuid _recipientGroup;
 };
 
 extern LootStore LootTemplates_Creature;

@@ -27,6 +27,7 @@
 #include "Item.h"
 #include "AuctionHouseMgr.h"
 #include "CalendarMgr.h"
+#include "LootMgr.h"
 
 MailSender::MailSender(Object* sender, MailStationery stationery) : m_stationery(stationery)
 {
@@ -91,7 +92,7 @@ void MailDraft::prepareItems(Player* receiver, SQLTransaction& trans)
 
     m_mailTemplateItemsNeed = false;
 
-    Loot mailLoot;
+    Loot mailLoot(nullptr, receiver);
 
     // can be empty
     mailLoot.FillLoot(m_mailTemplateId, LootTemplates_Mail, receiver, true, true);

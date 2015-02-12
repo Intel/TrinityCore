@@ -56,6 +56,7 @@ struct DeclinedName;
 struct ItemTemplate;
 struct MovementInfo;
 struct TradeStatusInfo;
+class Loot;
 
 namespace lfg
 {
@@ -570,7 +571,7 @@ class WorldSession
 
         void BuildPartyMemberStatsChangedPacket(Player* player, WorldPacket* data);
 
-        void DoLootRelease(ObjectGuid lguid);
+        void DoLootRelease(Loot* loot);
 
         // Account mute time
         time_t m_muteTime;

@@ -52,6 +52,7 @@ EndContentData */
 #include "Spell.h"
 #include "Player.h"
 #include "WorldSession.h"
+#include "LootMgr.h"
 
 /*######
 ## go_cat_figurine
@@ -1020,7 +1021,10 @@ public:
 
     bool OnGossipHello(Player* player, GameObject* go) override
     {
-        player->SendLoot(go->GetGUID(), LOOT_CORPSE);
+        if (!go->loot)
+            go->loot = Loot::CreateGameObjectLoot(go, player);
+
+        player->SendLoot(go->loot);
         go->SummonCreature(NPC_HIVE_AMBUSHER, go->GetPositionX()+1, go->GetPositionY(), go->GetPositionZ(), go->GetAngle(player), TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 60000);
         go->SummonCreature(NPC_HIVE_AMBUSHER, go->GetPositionX(), go->GetPositionY()+1, go->GetPositionZ(), go->GetAngle(player), TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 60000);
         return true;

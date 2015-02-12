@@ -24,12 +24,12 @@ void WorldPackets::Loot::LootUnit::Read()
 
 WorldPacket const* WorldPackets::Loot::LootResponse::Write()
 {
-    _worldPacket << LootObj;
     _worldPacket << Owner;
-    _worldPacket << Threshold;
-    _worldPacket << LootMethod;
-    _worldPacket << AcquireReason;
+    _worldPacket << LootObj;
     _worldPacket << FailureReason;
+    _worldPacket << AcquireReason;
+    _worldPacket << LootMethod;
+    _worldPacket << Threshold;
     _worldPacket << Coins;
     _worldPacket << uint32(Items.size());
     _worldPacket << uint32(Currencies.size());
@@ -57,8 +57,8 @@ WorldPacket const* WorldPackets::Loot::LootResponse::Write()
     }
 
     _worldPacket.WriteBit(PersonalLooting);
-    _worldPacket.WriteBit(Acquired);
     _worldPacket.WriteBit(AELooting);
+    _worldPacket.WriteBit(Acquired);
     _worldPacket.FlushBits();
 
     return &_worldPacket;
@@ -103,6 +103,26 @@ WorldPacket const* WorldPackets::Loot::LootMoneyNotify::Write()
 WorldPacket const* WorldPackets::Loot::CoinRemoved::Write()
 {
     _worldPacket << LootObj;
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Loot::AELootTargets::Write()
+{
+    _worldPacket << Count;
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Loot::AELootTargetAck::Write()
+{
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Loot::LootReleaseServer::Write()
+{
+    _worldPacket << LootObj;
+    _worldPacket << Owner;
 
     return &_worldPacket;
 }

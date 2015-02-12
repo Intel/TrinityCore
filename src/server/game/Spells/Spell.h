@@ -537,7 +537,7 @@ class Spell
         void TriggerGlobalCooldown();
         void CancelGlobalCooldown();
 
-        void SendLoot(ObjectGuid guid, LootType loottype);
+        void SendLoot();
 
         Unit* const m_caster;
 

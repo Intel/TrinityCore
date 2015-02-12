@@ -1304,6 +1304,23 @@ namespace Trinity
             float m_fRange;
     };
 
+    class AllLootableCreaturesInRange
+    {
+        public:
+            AllLootableCreaturesInRange(const WorldObject* object, float maxRange) : _object(object), _range(maxRange) { }
+            bool operator() (Creature* creature)
+            {
+                if (!creature->IsAlive() && creature->loot && !creature->loot->IsLooted() && _object->IsWithinDist(creature, _range, false))
+                    return true;
+
+                return false;
+            }
+
+        private:
+            const WorldObject* _object;
+            float _range;
+    };
+
     class PlayerAtMinimumRangeAway
     {
     public:

@@ -972,6 +972,13 @@ MinPetitionSigns = 4
 MaxGroupXPDistance = 74
 
 #
+#    MaxAoELootDistance
+#        Description: Max distance to check for AoE loot corpses.
+#        Default:     17
+
+MaxAoELootDistance = 17
+
+#
 #    MaxRecruitAFriendBonusDistance
 #        Description: Max distance between character and and group to gain the Recruit-A-Friend
 #                     XP multiplier.

@@ -5112,7 +5112,7 @@ void AuraEffect::HandleChannelDeathItem(AuraApplication const* aurApp, uint8 mod
     {
         // Soul Shard only from units that grant XP or honor
         if (!plCaster->isHonorOrXPTarget(target) ||
-            (target->GetTypeId() == TYPEID_UNIT && !target->ToCreature()->isTappedBy(plCaster)))
+            (target->GetTypeId() == TYPEID_UNIT && !target->ToCreature()->IsTappedBy(plCaster)))
             return;
     }
 

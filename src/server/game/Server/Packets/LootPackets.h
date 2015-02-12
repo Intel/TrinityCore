@@ -62,18 +62,18 @@ namespace WorldPackets
 
             WorldPacket const* Write() override;
 
-            ObjectGuid LootObj;
             ObjectGuid Owner;
-            uint8 Threshold     = 17; // Most common value
-            uint8 LootMethod    = 0;
-            uint8 AcquireReason = 0;
-            uint8 FailureReason = 2; // Most common value
+            ObjectGuid LootObj;
+            uint8 Threshold     = 0; // ItemQualities enum in SharedDesines.h
+            uint8 LootMethod    = 0; // LootMethod enum in LootMgr.h
+            uint8 AcquireReason = 0; // LootType enum in LootMgr.h
+            uint8 FailureReason = 0; // LootError enum in LootMgr.h
             uint32 Coins        = 0;
             std::vector<LootItem> Items;
             std::vector<LootCurrency> Currencies;
             bool PersonalLooting = false;
             bool Acquired        = false;
-            bool AELooting      = false;
+            bool AELooting       = false;
         };
 
         struct LootRequest
@@ -96,7 +96,7 @@ namespace WorldPackets
         class LootRemoved final : public ServerPacket
         {
         public:
-            LootRemoved() : ServerPacket(SMSG_LOOT_REMOVED, 30) { }
+            LootRemoved() : ServerPacket(SMSG_LOOT_REMOVED, 33) { }
 
             WorldPacket const* Write() override;
 
@@ -137,11 +137,40 @@ namespace WorldPackets
         class CoinRemoved final : public ServerPacket
         {
         public:
-            CoinRemoved() : ServerPacket(SMSG_COIN_REMOVED, 9) { }
+            CoinRemoved() : ServerPacket(SMSG_COIN_REMOVED, 16) { }
 
             WorldPacket const* Write() override;
 
             ObjectGuid LootObj;
+        };
+
+        class AELootTargets final : public ServerPacket
+        {
+        public:
+            AELootTargets() : ServerPacket(SMSG_AE_LOOT_TARGETS, 4) { }
+
+            WorldPacket const* Write() override;
+
+            uint32 Count = 0;
+        };
+
+        class AELootTargetAck final : public ServerPacket
+        {
+        public:
+            AELootTargetAck() : ServerPacket(SMSG_AE_LOOT_TARGET_ACK, 0) { }
+
+            WorldPacket const* Write() override;
+        };
+
+        class LootReleaseServer final : public ServerPacket
+        {
+        public:
+            LootReleaseServer() : ServerPacket(SMSG_LOOT_RELEASE, 32) { }
+
+            WorldPacket const* Write() override;
+
+            ObjectGuid LootObj;
+            ObjectGuid Owner;
         };
     }
 }

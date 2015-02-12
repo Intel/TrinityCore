@@ -1750,7 +1750,7 @@ void Spell::EffectEnergizePct(SpellEffIndex /*effIndex*/)
     m_caster->EnergizeBySpell(unitTarget, m_spellInfo->Id, gain, power);
 }
 
-void Spell::SendLoot(ObjectGuid guid, LootType loottype)
+void Spell::SendLoot()
 {
     Player* player = m_caster->ToPlayer();
     if (!player)
@@ -1812,10 +1812,14 @@ void Spell::SendLoot(ObjectGuid guid, LootType loottype)
             default:
                 break;
         }
-    }
 
-    // Send loot
-    player->SendLoot(guid, loottype);
+        // Generate loot if it does not exist
+        if (!gameObjTarget->loot)
+            gameObjTarget->loot = Loot::CreateGameObjectLoot(gameObjTarget, player);
+
+        // Send loot
+        player->SendLoot(gameObjTarget->loot);
+    }
 }
 
 void Spell::EffectOpenLock(SpellEffIndex effIndex)
@@ -1897,7 +1901,7 @@ void Spell::EffectOpenLock(SpellEffIndex effIndex)
     }
 
     if (gameObjTarget)
-        SendLoot(guid, LOOT_SKINNING);
+        SendLoot();
     else if (itemTarget)
         itemTarget->SetFlag(ITEM_FIELD_FLAGS, ITEM_FLAG_UNLOCKED);
 
@@ -2399,8 +2403,24 @@ void Spell::EffectPickPocket(SpellEffIndex /*effIndex*/)
         return;
 
     // victim have to be alive and humanoid or undead
-    if (unitTarget->IsAlive() && (unitTarget->GetCreatureTypeMask() &CREATURE_TYPEMASK_HUMANOID_OR_UNDEAD) != 0)
-        m_caster->ToPlayer()->SendLoot(unitTarget->GetGUID(), LOOT_PICKPOCKETING);
+    if (!unitTarget->IsAlive() || !(unitTarget->GetCreatureTypeMask() & CREATURE_TYPEMASK_HUMANOID_OR_UNDEAD))
+        return;
+
+    Creature* creature = unitTarget->ToCreature();
+
+    if (creature->CanGeneratePickPocketLoot())
+    {
+        if (creature->loot)
+            delete creature->loot;
+
+        creature->loot = Loot::CreatePickPocketLoot(creature, m_caster->ToPlayer());
+        m_caster->ToPlayer()->SendLoot(creature->loot);
+    }
+    else
+    {
+        m_caster->ToPlayer()->SendLootError(creature->GetGUID(), LOOT_ERROR_ALREADY_PICKPOCKETED);
+        return;
+    }
 }
 
 void Spell::EffectAddFarsight(SpellEffIndex /*effIndex*/)
@@ -4115,7 +4135,9 @@ void Spell::EffectDisEnchant(SpellEffIndex /*effIndex*/)
     if (Player* caster = m_caster->ToPlayer())
     {
         caster->UpdateCraftSkill(m_spellInfo->Id);
-        caster->SendLoot(itemTarget->GetGUID(), LOOT_DISENCHANTING);
+
+        itemTarget->loot = Loot::CreateDisenchantingLoot(itemTarget, caster);
+        caster->SendLoot(itemTarget->loot);
     }
 
     // item will be removed at disenchanting end
@@ -4429,20 +4451,31 @@ void Spell::EffectSkinning(SpellEffIndex /*effIndex*/)
         return;
 
     Creature* creature = unitTarget->ToCreature();
+    Player* player = m_caster->ToPlayer();
     int32 targetLevel = creature->getLevel();
 
     uint32 skill = creature->GetCreatureTemplate()->GetRequiredLootSkill();
 
-    m_caster->ToPlayer()->SendLoot(creature->GetGUID(), LOOT_SKINNING);
+    // Already skinned
+    if (creature->loot && creature->loot->Type == LOOT_SKINNING)
+        return;
+
+    // Delete loot if such exists
+    if (creature->loot)
+        delete creature->loot;
+
+    creature->loot = Loot::CreateSkinningLoot(creature, player);
+    player->SendLoot(creature->loot);
+
     creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE);
     creature->SetFlag(OBJECT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE);
 
     int32 reqValue = targetLevel < 10 ? 0 : targetLevel < 20 ? (targetLevel-10)*10 : targetLevel*5;
 
-    int32 skillValue = m_caster->ToPlayer()->GetPureSkillValue(skill);
+    int32 skillValue = player->GetPureSkillValue(skill);
 
     // Double chances for elites
-    m_caster->ToPlayer()->UpdateGatherSkill(skill, skillValue, reqValue, creature->isElite() ? 2 : 1);
+    player->UpdateGatherSkill(skill, skillValue, reqValue, creature->isElite() ? 2 : 1);
 }
 
 void Spell::EffectCharge(SpellEffIndex /*effIndex*/)
@@ -4970,7 +5003,8 @@ void Spell::EffectProspecting(SpellEffIndex /*effIndex*/)
         player->UpdateGatherSkill(SKILL_JEWELCRAFTING, SkillValue, reqSkillValue);
     }
 
-    player->SendLoot(itemTarget->GetGUID(), LOOT_PROSPECTING);
+    itemTarget->loot = Loot::CreateProspectingLoot(itemTarget, player);
+    player->SendLoot(itemTarget->loot);
 }
 
 void Spell::EffectMilling(SpellEffIndex /*effIndex*/)
@@ -4995,7 +5029,8 @@ void Spell::EffectMilling(SpellEffIndex /*effIndex*/)
         player->UpdateGatherSkill(SKILL_INSCRIPTION, SkillValue, reqSkillValue);
     }
 
-    player->SendLoot(itemTarget->GetGUID(), LOOT_MILLING);
+    itemTarget->loot = Loot::CreateMillingLoot(itemTarget, player);
+    player->SendLoot(itemTarget->loot);
 }
 
 void Spell::EffectSkill(SpellEffIndex /*effIndex*/)

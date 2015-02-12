@@ -585,18 +585,16 @@ class Creature : public Unit, public GridObject<Creature>, public MapObject
         virtual void SaveToDB(uint32 mapid, uint32 spawnMask, uint32 phaseMask);
         virtual void DeleteFromDB();                        // overriden in Pet
 
-        Loot loot;
+        Loot* loot;
         void StartPickPocketRefillTimer();
         void ResetPickPocketRefillTimer() { _pickpocketLootRestore = 0; }
         bool CanGeneratePickPocketLoot() const { return _pickpocketLootRestore <= time(NULL); }
-        void SetSkinner(ObjectGuid guid) { _skinner = guid; }
-        ObjectGuid GetSkinner() const { return _skinner; } // Returns the player who skinned this creature
-        Player* GetLootRecipient() const;
-        Group* GetLootRecipientGroup() const;
-        bool hasLootRecipient() const { return !m_lootRecipient.IsEmpty() || !m_lootRecipientGroup.IsEmpty(); }
-        bool isTappedBy(Player const* player) const;                          // return true if the creature is tapped by the player or a member of his party.
+        Player* GetTapper() const;
+        Group* GetTapperGroup() const;
+        void SetTapper(Unit* unit);
+        bool IsTapped() const { return !_tapper.IsEmpty() || !_tapperGroup.IsEmpty(); }
+        bool IsTappedBy(Player const* player) const;                          // return true if the creature is tapped by the player or a member of his party.
 
-        void SetLootRecipient (Unit* unit);
         void AllLootRemovedFromCorpse();
 
         uint16 GetLootMode() { return m_LootMode; }
@@ -651,9 +649,6 @@ class Creature : public Unit, public GridObject<Creature>, public MapObject
 
         float GetRespawnRadius() const { return m_respawnradius; }
         void SetRespawnRadius(float dist) { m_respawnradius = dist; }
-
-        uint32 m_groupLootTimer;                            // (msecs)timer used for group loot
-        ObjectGuid lootingGroupLowGUID;                     // used to find group which is looting corpse
 
         void SendZoneUnderAttackMessage(Player* attacker);
 
@@ -722,9 +717,8 @@ class Creature : public Unit, public GridObject<Creature>, public MapObject
 
         static float _GetHealthMod(int32 Rank);
 
-        ObjectGuid m_lootRecipient;
-        ObjectGuid m_lootRecipientGroup;
-        ObjectGuid _skinner;
+        ObjectGuid _tapper;
+        ObjectGuid _tapperGroup;
 
         /// Timers
         time_t _pickpocketLootRestore;

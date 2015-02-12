@@ -338,8 +338,8 @@ class boss_valithria_dreamwalker : public CreatureScript
 
             void HealReceived(Unit* healer, uint32& heal) override
             {
-                if (!me->hasLootRecipient())
-                    me->SetLootRecipient(healer);
+                if (!me->IsTapped())
+                    me->SetTapper(healer);
 
                 me->LowerPlayerDamageReq(heal);
 

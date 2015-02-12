@@ -58,9 +58,9 @@ GameObject::GameObject() : WorldObject(false), MapObject(),
     m_DBTableGuid = UI64LIT(0);
     m_rotation = 0;
 
-    m_groupLootTimer = 0;
-
+    loot = nullptr;
     ResetLootMode(); // restore default loot mode
+
     m_stationaryPosition.Relocate(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
@@ -297,10 +297,6 @@ bool GameObject::Create(ObjectGuid::LowType guidlow, uint32 name_id, Map* map, u
     }
     LastUsedScriptID = GetGOInfo()->ScriptId;
     AIM_Initialize();
-
-    // Initialize loot duplicate count depending on raid difficulty
-    if (map->Is25ManRaid())
-        loot.maxDuplicates = 3;
 
     return true;
 }
@@ -566,19 +562,8 @@ void GameObject::Update(uint32 diff)
                     }
                     break;
                 case GAMEOBJECT_TYPE_CHEST:
-                    if (m_groupLootTimer)
-                    {
-                        if (m_groupLootTimer <= diff)
-                        {
-                            if (Group* group = sGroupMgr->GetGroupByGUID(lootingGroupLowGUID))
-                                group->EndRoll(&loot);
-
-                            m_groupLootTimer = 0;
-                            lootingGroupLowGUID.Clear();
-                        }
-                        else
-                            m_groupLootTimer -= diff;
-                    }
+                    if (loot)
+                        loot->UpdateRollTimer(diff);
                     break;
                 case GAMEOBJECT_TYPE_TRAP:
                 {
@@ -641,7 +626,8 @@ void GameObject::Update(uint32 diff)
                     return;
             }
 
-            loot.clear();
+            delete loot;
+            loot = nullptr;
 
             //! If this is summoned by a spell with ie. SPELL_EFFECT_SUMMON_OBJECT_WILD, with or without owner, we check respawn criteria based on spell
             //! The GetOwnerGUID() check is mostly for compatibility with hacky scripts - 99% of the time summoning should be done trough spells.
@@ -717,46 +703,6 @@ void GameObject::Delete()
         sPoolMgr->UpdatePool<GameObject>(poolid, GetDBTableGUIDLow());
     else
         AddObjectToRemoveList();
-}
-
-void GameObject::getFishLoot(Loot* fishloot, Player* loot_owner)
-{
-    fishloot->clear();
-
-    uint32 zone, subzone;
-    uint32 defaultzone = 1;
-    GetZoneAndAreaId(zone, subzone);
-
-    // if subzone loot exist use it
-    fishloot->FillLoot(subzone, LootTemplates_Fishing, loot_owner, true, true);
-    if (fishloot->empty())  //use this becase if zone or subzone has set LOOT_MODE_JUNK_FISH,Even if no normal drop, fishloot->FillLoot return true. it wrong.
-    {
-        //subzone no result,use zone loot
-        fishloot->FillLoot(zone, LootTemplates_Fishing, loot_owner, true, true);
-        //use zone 1 as default, somewhere fishing got nothing,becase subzone and zone not set, like Off the coast of Storm Peaks.
-        if (fishloot->empty())
-            fishloot->FillLoot(defaultzone, LootTemplates_Fishing, loot_owner, true, true);
-    }
-}
-
-void GameObject::getFishLootJunk(Loot* fishloot, Player* loot_owner)
-{
-    fishloot->clear();
-
-    uint32 zone, subzone;
-    uint32 defaultzone = 1;
-    GetZoneAndAreaId(zone, subzone);
-
-    // if subzone loot exist use it
-    fishloot->FillLoot(subzone, LootTemplates_Fishing, loot_owner, true, true, LOOT_MODE_JUNK_FISH);
-    if (fishloot->empty())  //use this becase if zone or subzone has normal mask drop, then fishloot->FillLoot return true.
-    {
-        //use zone loot
-        fishloot->FillLoot(zone, LootTemplates_Fishing, loot_owner, true, true, LOOT_MODE_JUNK_FISH);
-        if (fishloot->empty())
-            //use zone 1 as default
-            fishloot->FillLoot(defaultzone, LootTemplates_Fishing, loot_owner, true, true, LOOT_MODE_JUNK_FISH);
-    }
 }
 
 void GameObject::SaveToDB()
@@ -1488,10 +1434,22 @@ void GameObject::Use(Unit* user)
                             SetLootState(GO_JUST_DEACTIVATED);
                         }
                         else
-                            player->SendLoot(GetGUID(), LOOT_FISHING);
+                        {
+                            if (loot)
+                                delete loot;
+
+                            loot = Loot::CreateFishingLoot(this, player);
+                            player->SendLoot(loot);
+                        }
                     }
-                    else // else: junk
-                        player->SendLoot(GetGUID(), LOOT_FISHING_JUNK);
+                    else // Junk loot
+                    {
+                        if (loot)
+                            delete loot;
+
+                        loot = Loot::CreateFishingLoot(this, player, LOOT_MODE_JUNK_FISH);
+                        player->SendLoot(loot);
+                    }
                     break;
                 }
                 case GO_JUST_DEACTIVATED:                   // nothing to do, will be deleted at next update
@@ -1704,7 +1662,12 @@ void GameObject::Use(Unit* user)
 
             Player* player = user->ToPlayer();
 
-            player->SendLoot(GetGUID(), LOOT_FISHINGHOLE);
+            if (loot)
+                delete loot;
+
+            loot = Loot::CreateGameObjectLoot(this, player);
+
+            player->SendLoot(loot);
             player->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_FISH_IN_GAMEOBJECT, GetGOInfo()->entry);
             return;
         }

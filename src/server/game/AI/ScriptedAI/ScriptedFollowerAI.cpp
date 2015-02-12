@@ -175,7 +175,7 @@ void FollowerAI::EnterEvadeMode()
     me->RemoveAllAuras();
     me->DeleteThreatList();
     me->CombatStop(true);
-    me->SetLootRecipient(NULL);
+    me->SetTapper(nullptr);
 
     if (HasFollowState(STATE_FOLLOW_INPROGRESS))
     {
